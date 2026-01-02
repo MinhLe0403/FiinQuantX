@@ -1,0 +1,17 @@
+# Bỏ qua file môi trường ảo
+.env
+.DS_Store
+
+# Bỏ qua các backtest
+/analysis/alpha_engine
+/analysis/backtest
+*.parquet
+*.csv
+
+# Bỏ qua file chứa mật khẩu/cấu hình local
+secrets.toml
+config.py
+*.log
+
+# Cache của Python
+__pycache__/
