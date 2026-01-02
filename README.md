@@ -1,73 +1,103 @@
-# 📈 Vietnam Stock Analyzer
+# 📘 FiinQuantX - Developer Guide
 
-Ứng dụng phân tích thị trường chứng khoán Việt Nam, hỗ trợ nhà đầu tư theo dõi dòng tiền ngành và phân tích kỹ thuật/cơ bản của từng cổ phiếu.
+> **Mục tiêu:** Hệ thống phân tích chứng khoán Việt Nam, hỗ trợ backtest, theo dõi dòng tiền và khuyến nghị đầu tư.
+> **Đối tượng đọc:** Developers, Data Analysts muốn đóng góp hoặc bảo trì hệ thống.
 
-![Demo App](https://via.placeholder.com/800x400?text=Screenshot+App+Cua+Ban)
-*(Bạn nên chụp ảnh màn hình app, upload lên tab Issues của Github hoặc Imgur rồi dán link vào đây)*
+---
 
-## 🚀 Tính năng chính
+## 1. 🏗️ Kiến trúc Hệ thống (Architecture)
 
-- **Tổng quan thị trường (Market Dashboard):**
-  - Biểu đồ Sector Rotation (Dòng tiền luân chuyển).
-  - Top cổ phiếu tăng/giảm mạnh trong ngày.
-  - Drill-down từ Ngành xuống Cổ phiếu chi tiết.
-- **Phân tích Cổ phiếu (Stock Analysis):**
-  - Biểu đồ nến (Candlestick) tương tác với Plotly.
-  - Các chỉ báo kỹ thuật (MA, RSI, MACD).
-  - Phân tích cơ bản (P/E, P/B, Doanh thu).
+Hệ thống hoạt động theo luồng dữ liệu một chiều (Unidirectional Data Flow):
 
-## 🛠️ Công nghệ sử dụng
-
-- **Python 3.10+**
-- **Streamlit:** Framework giao diện (Frontend).
-- **Pandas & SQLAlchemy:** Xử lý dữ liệu và kết nối Database.
-- **Plotly:** Vẽ biểu đồ tương tác.
-- **MySQL/PostgreSQL:** Cơ sở dữ liệu lưu trữ giá và thông tin tài chính.
-
-## ⚙️ Cài đặt và Chạy Local
-
-1. **Clone dự án:**
-   ```bash
-   git clone https://github.com/USERNAME/vietnam-stock-analyzer.git
-   cd vietnam-stock-analyzer
-   ```
-
-2. **Cài đặt thư viện:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Cấu hình Database:**
-   - Tạo file `.streamlit/secrets.toml` với nội dung:
-     ```toml
-     [db]
-     host = "localhost"
-     user = "root"
-     password = "YOUR_PASSWORD"
-     db_name = "stock_db"
-     ```
-   - Import dữ liệu mẫu từ file `data/schema.sql` (nếu bạn có export file sql).
-
-4. **Chạy ứng dụng:**
-   ```bash
-   streamlit run app.py
-   ```
-
-## 📂 Cấu trúc dự án
-
-```
-├── app.py              # File chính chạy ứng dụng
-├── analysis/           # Module xử lý tính toán
-│   ├── visualizer.py   # Vẽ biểu đồ
-│   └── indicators.py   # Tính chỉ báo
-├── database/           # Module kết nối DB
-├── assets/             # Hình ảnh, CSS
-├── requirements.txt    # Thư viện phụ thuộc
-└── README.md           # Tài liệu hướng dẫn
+```mermaid
+graph LR
+    A[Data Sources] -->|ETL Module| B(Database MySQL)
+    B -->|Analysis Engine| C{Controllers}
+    C -->|Business Logic| D[Views / UI]
+    D -->|Streamlit| E[User Interface]
 ```
 
-## 🤝 Đóng góp
-Mọi đóng góp (Pull Request) đều được hoan nghênh.
+1.  **ETL Layer (`/etl`):** Chịu trách nhiệm cào dữ liệu (Price, Fundamental, Flow) và lưu vào DB.
+2.  **Storage Layer (`/database`):** Quản lý Schema, kết nối và các script maintenance DB.
+3.  **Core Logic (`/analysis`):** "Bộ não" tính toán chỉ báo, chấm điểm, backtest, tín hiệu mua bán.
+4.  **Presentation Layer (`/views` & `/controllers`):** Tổ chức dữ liệu để hiển thị lên Streamlit.
 
-## 📝 License
-MIT License
+---
+
+## 2. 📂 Bản đồ Dự án (Directory Map)
+
+Để tìm đúng file cần sửa, hãy tra cứu bản đồ này:
+
+### 🔄 ETL & Data Pipeline (`/etl`)
+Nơi xử lý đầu vào dữ liệu. Chạy định kỳ để cập nhật DB.
+*   `runner.py`: Script chính để chạy toàn bộ quy trình cập nhật dữ liệu hàng ngày.
+*   `flow.py`, `price.py`, `fundamental.py`: Các module tải dữ liệu chuyên biệt.
+*   `base.py`: Class cha chứa các hàm chung (retry, logging, connection).
+
+### 🗄️ Database Management (`/database`)
+*   `setup.py`: Script khởi tạo bảng (Create Table). Chạy 1 lần đầu tiên.
+*   `check_*.py`: Các script tiện ích để kiểm tra sức khỏe dữ liệu (check size, check missing data).
+
+### 🧠 Analysis Engine (`/analysis`)
+Đây là nơi chứa toán học và thuật toán tài chính.
+*   `market/`: Các chỉ báo vĩ mô thị trường (Độ rộng, Thanh khoản, Xu hướng index).
+*   `signal_engine/`: Bộ lọc cổ phiếu (Scanner), Backtest tín hiệu và Gửi cảnh báo (Discord).
+*   `core.py`, `technical.py`, `fundamental.py`: Thư viện tính toán chỉ số (RSI, MACD, PE, PB...).
+
+### 🖥️ Application Layer (`/controllers` & `/views`)
+*   `controllers/`: Nhận request từ UI -> Gọi Analysis lấy số liệu -> Trả về DataFrame sạch sẽ.
+*   `views/`: Nhận DataFrame từ Controller -> Vẽ biểu đồ (Plotly) -> Hiển thị lên Streamlit (`st.dataframe`, `st.plotly_chart`).
+*   `app.py`: File chạy chính, điều hướng các trang.
+
+---
+
+## 3. 🛠️ Hướng dẫn Bảo trì & Phát triển (Playbook)
+
+Phần quan trọng nhất để bạn và đồng đội biết **phải sửa ở đâu**.
+
+### 🟢 Kịch bản 1: Thêm một chỉ báo kỹ thuật mới (VD: Bollinger Bands)
+1.  **Bước 1 (Logic):** Vào `analysis/technical.py`, viết hàm tính toán `calculate_bollinger()`.
+2.  **Bước 2 (Controller):** Vào `controllers/stock_controller.py`, gọi hàm đó để thêm cột vào DataFrame giá.
+3.  **Bước 3 (UI):** Vào `views/stock_view.py`, thêm code vẽ biểu đồ (add trace) cho Bollinger Bands.
+
+### 🟡 Kịch bản 2: Dữ liệu bị lỗi hoặc thiếu
+1.  Chạy `database/check_flow_status.py` hoặc `check_size.py` để xem bảng nào bị hổng dữ liệu.
+2.  Nếu cần tải lại, dùng `etl/on_demand.py` (nếu có) hoặc chỉnh sửa ngày trong `etl/runner.py` để chạy lại dữ liệu quá khứ.
+
+### 🔴 Kịch bản 3: Sửa lỗi hiển thị trên Dashboard
+1.  Kiểm tra `app/dashboard.py` hoặc `views/market_view.py`.
+2.  Các logic tính toán số liệu tổng hợp thường nằm ở `analysis/market/trend.py`.
+
+---
+
+## 4. 🚀 Quy trình Setup cho thành viên mới
+
+1.  **Clone & Environment:**
+    ```bash
+    git clone <repo_url>
+    python -m venv venv
+    source venv/bin/activate  # Windows: venv\Scripts\activate
+    pip install -r requirements.txt
+    ```
+
+2.  **Database Configuration:**
+    *   Tạo file `.streamlit/secrets.toml` chứa thông tin DB (host, user, password).
+    *   Nếu chưa có data: Chạy `database/setup.py` -> Chạy `etl/runner.py` (sẽ mất thời gian để tải full lịch sử).
+
+3.  **Run App:**
+    ```bash
+    streamlit run app.py
+    ```
+
+---
+
+## 5. 📝 Quy tắc Code (Coding Convention)
+
+Để code sạch và dễ đọc chung:
+*   **Type Hinting:** Bắt buộc dùng type hint.
+    *   *Tệ:* `def get_price(symbol):`
+    *   *Tốt:* `def get_price(symbol: str) -> pd.DataFrame:`
+*   **Không Hardcode:** Mật khẩu DB để trong `secrets.toml`. Các tham số (như chu kỳ RSI=14) nên để thành hằng số hoặc config.
+*   **Clean Up:** Xóa các file `copy.py` hoặc `check_connect.py` trước khi commit nếu không cần thiết.
+
+---
