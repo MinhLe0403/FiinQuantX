@@ -6,3 +6,10 @@ fastapi
 uvicorn
 requests
 python-dotenv
+streamlit
+plotly
+pandas
+numpy
+sqlalchemy
+pymysql
+psycopg2-binary 
