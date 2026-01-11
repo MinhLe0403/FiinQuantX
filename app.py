@@ -25,29 +25,156 @@ try:
     from controllers.market_controller import MarketController
     from controllers.stock_controller import StockController  # Import mới
     from views.market_view import MarketView
-    from views.stock_view import StockView                    # Import mới
+    from views.stock_view import StockView                    # Chưa có
 except ImportError as e:
     st.error(f"Lỗi module: {e}. Hãy đảm bảo bạn đang chạy từ thư mục gốc dự án.")
     st.stop()
 
-st.set_page_config(page_title="FiinQuant Pro", layout="wide", page_icon="🦈")
+st.set_page_config(
+    page_title="FiinQuant Pro",
+    layout="wide",
+    page_icon=None
+)
 
-# --- CSS: GIAO DIỆN DARK MODE HIỆN ĐẠI ---
 st.markdown("""
 <style>
-    .big-score {font-size: 72px !important; font-weight: 800; text-align: center; line-height: 1.0;}
-    .metric-card {
-        background: #1e1e1e; padding: 15px; border-radius: 12px; 
-        text-align: center; border-left: 5px solid #00AA00;
-        margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    }
-    .sub-metric-label {font-size: 13px; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px;}
-    .sub-metric-value {font-size: 22px; font-weight: bold; color: white;}
-    
-    /* Tùy chỉnh Tabs */
-    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
-    .stTabs [data-baseweb="tab"] { border-radius: 4px; padding: 8px 16px; font-size: 14px; }
-    .stTabs [data-baseweb="tab"][aria-selected="true"] { background-color: #333; color: #00FF00; border: 1px solid #00FF00; }
+
+/* =========================
+   GLOBAL THEME
+========================= */
+:root {
+    --bg-main: #0b0f19;
+    --bg-card: #121726;
+    --bg-hover: #171c2e;
+
+    --accent-primary: #2dd4bf;
+    --accent-secondary: #818cf8;
+    --accent-danger: #fb7185;
+
+    --text-main: #e5e7eb;
+    --text-muted: #9ca3af;
+    --border-soft: rgba(255,255,255,0.06);
+}
+
+html, body, [data-testid="stApp"] {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+}
+
+/* =========================
+   METRIC CARD – PRO
+========================= */
+.metric-card {
+    background: linear-gradient(
+        180deg,
+        var(--bg-card),
+        #0f1322
+    );
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border-soft);
+    text-align: center;
+    transition: all 0.25s ease;
+}
+
+.metric-card:hover {
+    background: var(--bg-hover);
+    box-shadow: 0 0 18px rgba(45,212,191,0.15);
+    transform: translateY(-2px);
+}
+
+.card-up { border-left: 3px solid var(--accent-primary); }
+.card-down { border-left: 3px solid var(--accent-danger); }
+.card-neutral { border-left: 3px solid var(--accent-secondary); }
+
+/* Text */
+.sub-metric-label {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.sub-metric-value {
+    font-size: 20px;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+.text-up { color: var(--accent-primary); }
+.text-down { color: var(--accent-danger); }
+
+/* =========================
+   BIG SCORE
+========================= */
+.big-score {
+    font-size: 54px;
+    font-weight: 800;
+    letter-spacing: -1px;
+}
+
+/* =========================
+   SIDEBAR – TERMINAL STYLE
+========================= */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(
+        180deg,
+        #0b0f19,
+        #090d17
+    );
+    border-right: 1px solid var(--border-soft);
+}
+
+/* Sidebar titles */
+section[data-testid="stSidebar"] h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent-primary);
+}
+
+/* =========================
+   TABS – MINIMAL
+========================= */
+.stTabs [data-baseweb="tab"] {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.stTabs [data-baseweb="tab"][aria-selected="true"] {
+    color: var(--accent-primary);
+    border-bottom: 2px solid var(--accent-primary);
+}
+
+/* =========================
+   BUTTONS
+========================= */
+.stButton > button {
+    background: linear-gradient(
+        135deg,
+        var(--accent-primary),
+        var(--accent-secondary)
+    );
+    border: none;
+    color: #020617;
+    font-weight: 700;
+    border-radius: 8px;
+}
+
+.stButton > button:hover {
+    filter: brightness(1.1);
+}
+
+/* =========================
+   INPUT
+========================= */
+input, textarea {
+    background-color: #0f1322 !important;
+    border: 1px solid var(--border-soft) !important;
+    color: var(--text-main) !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -67,72 +194,140 @@ def safe_fmt(val, fmt="{:,.0f}", default="-"):
     except: return default
 
 # ==============================================================================
-# 1. SIDEBAR (KHU VỰC ĐIỀU KHIỂN)
+# 1. SIDEBAR (KHU VỰC ĐIỀU KHIỂN) - PRO VERSION
 # ==============================================================================
-st.sidebar.markdown("## 🦈 FiinQuant Pro")
+with st.sidebar:
+    # --- HEADER ---
+    st.markdown("""
+    <div style="text-align:center; margin-bottom:12px;">
+        <div style="font-size:18px; font-weight:800; color:#2dd4bf;">
+            FiinQuant Pro
+        </div>
+        <div style="font-size:11px; letter-spacing:0.15em; color:#9ca3af;">
+            FINANCIAL INTELLIGENCE TERMINAL
+        </div>
+    </div>
+    <hr style="border-color:rgba(255,255,255,0.05);">
+    """, unsafe_allow_html=True)
 
-# --- A. KHU VỰC PHÂN TÍCH (Luôn hiển thị) ---
-st.sidebar.markdown("### 🔍 Phân Tích")
-input_symbol = st.sidebar.text_input("Mã Cổ Phiếu:", value="FPT", help="Nhập mã CP cần soi (VD: FPT, HPG)").upper().strip()
-days_lookback = st.sidebar.slider("Khung thời gian (Ngày):", 30, 365, 60)
+    # --- A. KHU VỰC PHÂN TÍCH (INPUT CHÍNH) ---
+    st.markdown("### 🎯 Control Panel")
+    
+    # Gom Input và Timeframe vào cho gọn
+    col_input, col_days = st.columns([2, 1])
+    with col_input:
+        input_symbol = st.text_input("Mã CK", value="FPT", label_visibility="collapsed", placeholder="Mã CK").upper().strip()
+    with col_days:
+        # Dùng number input thay slider cho gọn, hoặc selectbox
+        days_lookback = st.number_input("Days", min_value=30, max_value=700, value=60, label_visibility="collapsed", help="Số ngày nhìn lại")
 
-# --- B. KHU VỰC QUẢN LÝ DỮ LIỆU ---
-with st.sidebar.expander("⚙️ Quản lý & Cập nhật Dữ liệu", expanded=False):
-    tab_single, tab_batch = st.tabs(["Một Mã", "Theo Lô"])
+    st.caption(f"Đang soi: **{input_symbol}** trong {days_lookback} ngày qua.")
+    
+    st.markdown("---")
+
+    # --- B. KHU VỰC QUẢN LÝ DỮ LIỆU (DATA CENTER) ---
+    # Dùng expander để giấu đi khi không cần
+    with st.expander("🛠️ Data Center (Cập nhật)", expanded=False):
         
-    # Tab 1: Cập nhật Mã đang xem
-    with tab_single:
-        st.caption(f"Cập nhật dữ liệu cho mã: **{input_symbol}**")
-        force_update = st.checkbox("Tải lại toàn bộ (5 năm)", value=False)
-        if st.button("🚀 Cập nhật Ngay", use_container_width=True):
-            if not input_symbol: 
-                st.warning("Vui lòng nhập mã.")
-            else:
-                with st.status(f"Đang tải {input_symbol}...", expanded=True) as status:
-                    runner = ETLRunner()
-                    success, msg = runner.update_ticker(input_symbol, force_full=force_update)
-                    if success:
-                        status.update(label="Hoàn tất!", state="complete")
-                        st.toast(msg, icon="✅")
-                        st.cache_data.clear()
+        # Dùng Radio nằm ngang để chuyển tab thay vì Tab truyền thống (đỡ tốn diện tích dọc)
+        mode = st.radio("Chế độ:", ["Single Ticker", "Batch Update"], horizontal=True, label_visibility="collapsed")
+
+        # ---------------------------------------------------------
+        # MODE 1: SINGLE TICKER (CẬP NHẬT MÃ ĐANG SOI)
+        # ---------------------------------------------------------
+        if mode == "Single Ticker":
+            st.markdown(f"**Cập nhật: {input_symbol}**")
+            
+            # Chọn loại cập nhật: Auto hay Custom
+            update_type = st.selectbox("Kiểu tải:", ["Tự động (Mới nhất)", "Tùy chỉnh ngày", "Full (5 Năm)"], index=0)
+            
+            start_date_single = None
+            end_date_single = None
+
+            # Logic hiển thị lịch chọn ngày
+            if update_type == "Tùy chỉnh ngày":
+                c1, c2 = st.columns(2)
+                today = datetime.now()
+                with c1:
+                    start_date_single = st.date_input("Từ:", value=today - timedelta(days=30))
+                with c2:
+                    end_date_single = st.date_input("Đến:", value=today)
+
+            # Nút bấm hành động
+            if st.button("🚀 Thực hiện", use_container_width=True):
+                runner = ETLRunner()
+                with st.status(f"Processing {input_symbol}...", expanded=True) as status:
+                    try:
+                        if update_type == "Full (5 Năm)":
+                            # Logic cũ: Force full
+                            success, msg = runner.update_ticker(input_symbol, force_full=True)
+                            if success: status.update(label="✅ Xong!", state="complete")
+                            else: status.update(label="❌ Lỗi", state="error")
+                        
+                        elif update_type == "Tự động (Mới nhất)":
+                            # Logic cũ: Cập nhật delta
+                            success, msg = runner.update_ticker(input_symbol, force_full=False)
+                            if success: status.update(label="✅ Xong!", state="complete")
+                        
+                        else: # Tùy chỉnh ngày
+                            # LOGIC MỚI: Tận dụng hàm update_batch cho 1 mã
+                            s_str = start_date_single.strftime("%Y-%m-%d")
+                            e_str = end_date_single.strftime("%Y-%m-%d")
+                            
+                            # Fake hàm progress cho update_batch
+                            def dummy_progress(idx, total, txt): pass 
+                            
+                            # Gọi hàm batch nhưng truyền list 1 phần tử
+                            s_count, e_count = runner.update_batch_optimized([input_symbol], s_str, e_str, dummy_progress)
+                            
+                            status.update(label="✅ Đã tải xong!", state="complete")
+                            st.success(f"Dữ liệu {input_symbol} từ {s_str} đến {e_str} đã được cập nhật.")
+
+                        st.cache_data.clear() # Xóa cache để app nhận data mới
+                        
+                    except Exception as e:
+                        st.error(f"Lỗi: {str(e)}")
+
+        # ---------------------------------------------------------
+        # MODE 2: BATCH UPDATE (CẬP NHẬT THEO LÔ)
+        # ---------------------------------------------------------
+        else: 
+            st.markdown("**Cập nhật hàng loạt**")
+            all_indices = VN_INDICES_OPTIONS + HNX_INDICES_OPTIONS + UPCOM_INDICES_OPTIONS
+            selected_index = st.selectbox("Bộ chỉ số:", all_indices, index=0)
+            
+            today = datetime.now()
+            # Gom date input vào 1 dòng
+            cd1, cd2 = st.columns(2)
+            with cd1: start_d = st.date_input("Start", value=today - timedelta(days=2))
+            with cd2: end_d = st.date_input("End", value=today)
+            
+            if st.button("🌊 Run Batch", use_container_width=True):
+                runner = ETLRunner()
+                with st.status("Đang chạy Batch...", expanded=True) as status:
+                    tickers = runner.get_tickers_by_group(selected_index)
+                    if not tickers:
+                        st.error("Không có mã nào.")
                     else:
-                        status.update(label="Lỗi", state="error")
-                        st.error(msg)
+                        progress_bar = status.progress(0)
+                        def update_progress(idx, total, ticker):
+                            progress_bar.progress((idx + 1) / total, text=f"Update: {ticker}")
+                        
+                        s_str, e_str = start_d.strftime("%Y-%m-%d"), end_d.strftime("%Y-%m-%d")
+                        s_count, e_count = runner.update_batch_optimized(tickers, s_str, e_str, update_progress)
+                        
+                        status.update(label="Hoàn tất Batch!", state="complete")
+                        st.toast(f"Xong {s_count} mã!", icon="🥂")
+                        st.cache_data.clear()
 
-    # Tab 2: Cập nhật Hàng loạt
-    with tab_batch:
-        all_indices = VN_INDICES_OPTIONS + HNX_INDICES_OPTIONS + UPCOM_INDICES_OPTIONS
-        selected_index = st.selectbox("Chọn Bộ Chỉ Số:", all_indices, index=0)
-        
-        today = datetime.now()
-        start_d = st.date_input("Từ ngày:", value=today - timedelta(days=2))
-        end_d = st.date_input("Đến ngày:", value=today)
-        
-        if st.button("🌊 Chạy Batch Update", use_container_width=True):
-            runner = ETLRunner()
-            with st.status("Đang xử lý...", expanded=True) as status:
-                tickers = runner.get_tickers_by_group(selected_index)
-                if not tickers:
-                    st.error("Không tìm thấy mã.")
-                else:
-                    progress_bar = status.progress(0)
-                    def update_progress(idx, total, ticker):
-                        progress_bar.progress((idx + 1) / total, text=f"Đang xử lý: {ticker} ({idx+1}/{total})")
-                    
-                    s_str, e_str = start_d.strftime("%Y-%m-%d"), end_d.strftime("%Y-%m-%d")
-                    s_count, e_count = runner.update_batch_optimized(tickers, s_str, e_str, update_progress)
-                    
-                    status.update(label="Xong!", state="complete")
-                    st.success(f"Hoàn thành: {s_count} mã thành công.")
-                    st.cache_data.clear()
-        
+        # Nút VNINDEX luôn cần thiết nên để dưới cùng Expander
         st.divider()
-        if st.button("📥 Tải VNINDEX (Bắt buộc)", help="Cần để tính RS Rating"):
-            with st.status("Tải Index...") as s:
-                run = ETLRunner()
-                run.update_ticker("VNINDEX", force_full=True)
-                s.update(label="Xong!", state="complete")
-                st.cache_data.clear()
+        if st.button("📥 Update VNINDEX (Nhanh)", help="Cập nhật nhanh Index để tính RS"):
+             with st.spinner("Đang tải VNINDEX..."):
+                 runner = ETLRunner()
+                 runner.update_ticker("VNINDEX", force_full=False)
+                 st.cache_data.clear()
+                 st.toast("Đã cập nhật VNINDEX", icon="✅")
 
 # ==============================================================================
 # 2. MAIN LAYOUT: TABS CHÍNH
@@ -210,9 +405,14 @@ with tab_stock:
                     st.markdown(f"<h3 style='color:{r_col}; margin:0'>KHUYẾN NGHỊ: {rec}</h3>", unsafe_allow_html=True)
                 with c_head2:
                     sc = health['total_score']
-                    clr = "#00FF00" if sc >= 7 else "#FFD700" if sc >= 5 else "#FF4444"
-                    st.markdown(f"<div class='big-score' style='color:{clr}'>{sc:.1f}</div>", unsafe_allow_html=True)
-                    st.markdown(f"<div style='text-align:center; color:{clr}'>TỔNG ĐIỂM</div>", unsafe_allow_html=True)
+                    clr = "#2dd4bf" if sc >= 7 else "#facc15" if sc >= 5 else "#fb7185"
+
+                    st.markdown(f"""
+                    <div style="text-align:right">
+                        <div class="big-score" style="color:{clr}">{sc:.1f}</div>
+                        <div style="color:#9ca3af; font-size:12px">TỔNG ĐIỂM</div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
                 # --- 4. UI: 5 PILLARS SCORE ---
                 cols = st.columns(5)
@@ -361,8 +561,7 @@ with tab_stock:
         # ========================================================
         dna = health.get('flow_dna', {})
         if dna:
-            st.markdown("---")
-            st.subheader("🧬 STOCK FLOW DNA (Phân tích Hành vi)")
+            st.subheader("STOCK FLOW DNA (Phân tích Hành vi)")
             
             # 1. Trạng thái hiện tại
             st.info(f"📌 **Trạng thái:** {dna.get('current_state', 'N/A')}")
@@ -430,12 +629,12 @@ with tab_stock:
         target_investor = st.selectbox(
             "Chọn Góc nhìn:", 
             [
+                "Khối Ngoại Tổng (foreign)", # Backup
                 "Tổ chức Nước ngoài (foreign_inst)", # Ưu tiên
                 "Cá nhân Nước ngoài (foreign_ind)",  # Mới
                 "Tự doanh (prop)", 
                 "Cá nhân Nội (local_ind)", 
-                "Tổ chức Nội (local_inst)",
-                "Khối Ngoại Tổng (foreign)" # Backup
+                "Tổ chức Nội (local_inst)"
             ],
             index=0
         )
@@ -443,23 +642,19 @@ with tab_stock:
         # Mapping Key từ selectbox sang tên cột dữ liệu
         # (Phải khớp với tên biến trong InvestorFlowAnalyzer)
         map_inv = {
+            "Khối Ngoại Tổng (foreign)": "foreign",
             "Tổ chức Nước ngoài (foreign_inst)": "foreign_inst",
             "Cá nhân Nước ngoài (foreign_ind)": "foreign_ind",
             "Tự doanh (prop)": "prop",
             "Cá nhân Nội (local_ind)": "local_ind",
-            "Tổ chức Nội (local_inst)": "local_inst",
-            "Khối Ngoại Tổng (foreign)": "foreign"
+            "Tổ chức Nội (local_inst)": "local_inst"
         }
         code = map_inv[target_investor]
         
         # 2. Logic Vẽ VWAP (Copy từ logic chuẩn bạn đã gửi)
-        # Lấy 60 ngày gần nhất
-        # days_lookback = 60
         if not df_full.empty:
             df_calc = df_full.tail(days_lookback).copy().reset_index(drop=True)
-            
-            # ... (Đoạn code tính VWAP của bạn, CHÚ Ý thay 'code' vào đúng chỗ) ...
-            
+
             # --- KHỞI TẠO BIẾN ---
             vwap_buy_series = []
             net_vol_series = [] 
@@ -823,7 +1018,3 @@ with tab_stock:
             for r in risk_msgs: st.write(f"- {r}")
             if scores.get('risk', 10) >= 8 and not risk_msgs:
                 st.success("Cổ phiếu đang ở trạng thái ổn định/an toàn.")
-
-# except Exception as e:
-#     st.error(f"Đã xảy ra lỗi nghiêm trọng: {e}")
-#     # st.exception(e)
