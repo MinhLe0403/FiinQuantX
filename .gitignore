@@ -12,6 +12,7 @@
 secrets.toml
 config.py
 *.log
+check_connect.py
 
 # Cache của Python
 __pycache__/
